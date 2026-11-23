@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OptiComm Lab — Optical Communication Simulator</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <nav class="navbar">
+      <div class="brand">
+        <div class="brand-icon"><span>⌁</span></div>
+        <div>
+          <strong>OptiComm Lab</strong
+          ><span>Optical Communication Simulator</span>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <a href="#simulator">Simulator</a><a href="#analysis">Analysis</a
+        ><a href="#theory">Theory</a>
+        <div class="nav-badge">
+          <span class="live-dot"></span> ECE • PBL PROJECT
+        </div>
+      </div>
+    </nav>
+
+    <main class="container">
+      <section class="hero" id="simulator">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">PYTHON WEB APPLICATION</p>
+          <h1>Optical Signal Transmission<br /><span>& Visualization</span></h1>
+          <p class="hero-text">
+            Simulate an optical communication link, watch the signal travel
+            through the fiber in real time, and analyze how attenuation and
+            noise affect communication quality.
+          </p>
+          <div class="hero-actions">
+            <button id="heroRun" class="primary large">
+              ▶ Start Live Simulation
+            </button>
+            <button id="scrollTheory" class="ghost large">
+              Explore Theory ↓
+            </button>
+          </div>
+        </div>
+        <div class="hero-visual reveal delay-1">
+          <div class="orbital-ring ring-one"></div>
+          <div class="orbital-ring ring-two"></div>
+          <div class="hero-core">
+            <span>OPTICAL</span><b>λ</b><small>COMMUNICATION</small>
+          </div>
+          <div class="hero-chip chip-one">LASER</div>
+          <div class="hero-chip chip-two">FIBER</div>
+          <div class="hero-chip chip-three">RX</div>
+        </div>
+      </section>
+
+      <section class="panel controls-panel reveal" id="controls">
+        <div class="panel-title">
+          <div>
+            <div class="section-kicker">EXPERIMENT 01</div>
+            <h2>Experiment Controls</h2>
+            <p>Configure the optical communication channel.</p>
+          </div>
+          <div class="control-actions">
+            <button id="resetBtn" class="ghost">↺ Reset</button
+            ><button id="runBtn" class="primary">▶ Run Experiment</button>
+          </div>
+        </div>
+
+        <div class="presets">
+          <span>Quick presets:</span>
+          <button data-preset="ideal">Ideal Link</button
+          ><button data-preset="balanced">Balanced</button
+          ><button data-preset="noisy">Noisy Channel</button
+          ><button data-preset="long">Long Distance</button>
+        </div>
+
+        <div class="controls">
+          <label
+            >Signal Type<select id="signal">
+              <option>Digital</option>
+              <option>Sine</option>
+              <option>Square</option>
+            </select></label
+          >
+          <label
+            >Fiber Length (km)<input
+              id="length"
+              type="number"
+              value="10"
+              min="0"
+              step="0.5"
+          /></label>
+          <label
+            >Attenuation (dB/km)<input
+              id="attenuation"
+              type="number"
+              value="0.2"
+              min="0"
+              step="0.01"
+          /></label>
+          <label
+            >Noise (%)<input
+              id="noise"
+              type="number"
+              value="5"
+              min="0"
+              step="0.5"
+          /></label>
+          <label
+            >Tx Power (mW)<input
+              id="power"
+              type="number"
+              value="10"
+              min="0.1"
+              step="0.5"
+          /></label>
+        </div>
+        <div class="simulation-status">
+          <span id="statusDot" class="status-dot"></span
+          ><span id="statusText"
+            >System ready — configure the link and run an experiment.</span
+          ><span id="elapsed">0.0s</span>
+        </div>
+      </section>
+
+      <section class="metrics reveal">
+        <div class="metric-card">
+          <div class="metric-icon">⌁</div>
+          <span>Fiber Loss</span><strong id="loss">--</strong
+          ><small>channel attenuation</small>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">◉</div>
+          <span>Received Power</span><strong id="rx">--</strong
+          ><small>optical power at RX</small>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">≈</div>
+          <span>SNR</span><strong id="snr">--</strong
+          ><small>signal-to-noise ratio</small>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">✓</div>
+          <span>BER</span><strong id="ber">--</strong
+          ><small>bit error rate</small>
+        </div>
+      </section>
+
+      <section class="live-panel panel reveal">
+        <div class="panel-title">
+          <div>
+            <div class="section-kicker">LIVE TRANSMISSION</div>
+            <h2>Communication Pipeline</h2>
+            <p>
+              Animated optical pulses represent data moving through the link.
+            </p>
+          </div>
+          <div class="live-badge">
+            <span class="live-dot"></span><span id="liveLabel">STANDBY</span>
+          </div>
+        </div>
+        <div class="pipeline" id="pipeline">
+          <div class="node" data-node="source">
+            <div class="node-symbol">◌</div>
+            <b>Signal Generator</b><small>Information</small>
+          </div>
+          <div class="connector"><i></i><span>DATA</span></div>
+          <div class="node" data-node="tx">
+            <div class="node-symbol">◉</div>
+            <b>Optical TX</b><small>Electrical → Light</small>
+          </div>
+          <div class="connector"><i></i><span>LASER</span></div>
+          <div class="node fiber-node" data-node="fiber">
+            <div class="fiber-beam"><em></em><em></em><em></em></div>
+            <div class="node-symbol">⌁</div>
+            <b>Optical Fiber</b><small>Loss + Noise</small>
+          </div>
+          <div class="connector"><i></i><span>LIGHT</span></div>
+          <div class="node" data-node="rxnode">
+            <div class="node-symbol">◉</div>
+            <b>Optical RX</b><small>Light → Electrical</small>
+          </div>
+          <div class="connector"><i></i><span>DATA</span></div>
+          <div class="node" data-node="output">
+            <div class="node-symbol">▥</div>
+            <b>Recovered Signal</b><small>Output</small>
+          </div>
+        </div>
+        <div class="transmission-track">
+          <div class="track-line"></div>
+          <div class="track-particle p1"></div>
+          <div class="track-particle p2"></div>
+          <div class="track-particle p3"></div>
+          <span>OPTICAL DATA FLOW</span>
+        </div>
+      </section>
+
+      <section class="telemetry-grid reveal">
+        <div class="panel telemetry-card">
+          <div class="mini-title">
+            <span>LINK HEALTH</span><strong id="healthText">READY</strong>
+          </div>
+          <div class="health-meter"><div id="healthBar"></div></div>
+          <p id="healthMessage">
+            Run an experiment to evaluate the current communication link.
+          </p>
+        </div>
+        <div class="panel telemetry-card">
+          <div class="mini-title">
+            <span>RECEIVED POWER</span><strong id="powerText">--</strong>
+          </div>
+          <div class="health-meter"><div id="powerBar"></div></div>
+          <p>Relative optical power remaining after fiber attenuation.</p>
+        </div>
+        <div class="panel telemetry-card">
+          <div class="mini-title">
+            <span>NOISE IMPACT</span><strong id="noiseText">--</strong>
+          </div>
+          <div class="health-meter"><div id="noiseBar"></div></div>
+          <p>Higher channel noise generally reduces receiver quality.</p>
+        </div>
+      </section>
+
+      <section class="section-heading reveal" id="analysis">
+        <div class="section-kicker">RESULTS & ANALYSIS</div>
+        <h2>Signal Analysis Dashboard</h2>
+        <p>Inspect the transmitted, degraded, and recovered waveforms.</p>
+      </section>
+      <section class="charts reveal">
+        <div class="chart-card">
+          <div class="chart-heading">
+            <h3>Original Information Signal</h3>
+            <span>TX INPUT</span>
+          </div>
+          <canvas id="originalChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-heading">
+            <h3>Signal After Optical Fiber</h3>
+            <span>ATTENUATED</span>
+          </div>
+          <canvas id="fiberChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-heading">
+            <h3>Receiver Output</h3>
+            <span>RX OUTPUT</span>
+          </div>
+          <canvas id="receiverChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-heading">
+            <h3>Received Power vs Distance</h3>
+            <span>LINK BUDGET</span>
+          </div>
+          <canvas id="powerChart"></canvas>
+        </div>
+        <div class="chart-card wide">
+          <div class="chart-heading">
+            <h3>BER vs Channel Noise</h3>
+            <span>QUALITY CURVE</span>
+          </div>
+          <canvas id="berChart"></canvas>
+        </div>
+      </section>
+
+      <section class="insight-grid reveal">
+        <div class="panel insight-card">
+          <div class="insight-icon">Σ</div>
+          <div>
+            <span>ENGINEERING INTERPRETATION</span>
+            <h3 id="interpretationTitle">Awaiting simulation</h3>
+            <p id="interpretation">
+              Run the experiment to generate an engineering interpretation of
+              the selected parameters.
+            </p>
+          </div>
+        </div>
+        <div class="panel analysis-table">
+          <div class="mini-title">
+            <span>EXPERIMENT SNAPSHOT</span
+            ><strong id="snapshotSignal">—</strong>
+          </div>
+          <div class="table-row">
+            <span>Fiber length</span><b id="snapshotLength">—</b>
+          </div>
+          <div class="table-row">
+            <span>Attenuation</span><b id="snapshotAttenuation">—</b>
+          </div>
+          <div class="table-row">
+            <span>Channel noise</span><b id="snapshotNoise">—</b>
+          </div>
+          <div class="table-row">
+            <span>Transmitter power</span><b id="snapshotPower">—</b>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel history-panel reveal">
+        <div class="panel-title">
+          <div>
+            <div class="section-kicker">EXPERIMENT HISTORY</div>
+            <h2>Compare Recent Runs</h2>
+            <p>Your latest simulations are stored locally in the browser.</p>
+          </div>
+          <button id="clearHistory" class="ghost">Clear History</button>
+        </div>
+        <div id="historyEmpty" class="empty-state">
+          No experiments saved yet. Run the simulator to build your comparison
+          history.
+        </div>
+        <div id="historyContent" class="history-content hidden">
+          <div id="historyList" class="history-list"></div>
+          <div class="compare-card">
+            <div class="mini-title">
+              <span>LATEST VS PREVIOUS</span
+              ><strong id="compareLabel">—</strong>
+            </div>
+            <div id="compareBars"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel formulas reveal" id="theory">
+        <div class="panel-title">
+          <div>
+            <div class="section-kicker">ECE THEORY</div>
+            <h2>Engineering Calculations</h2>
+            <p>Core equations used by the simulator.</p>
+          </div>
+        </div>
+        <div class="formula-grid">
+          <div>
+            <b>Fiber Loss</b><code>Loss(dB) = α × L</code>
+            <p>Attenuation coefficient × fiber length.</p>
+          </div>
+          <div>
+            <b>Received Power</b><code>Pr = Pt × 10<sup>−Loss/10</sup></code>
+            <p>Power remaining after optical loss.</p>
+          </div>
+          <div>
+            <b>SNR</b><code>SNR(dB) = 10 log₁₀(Psignal / Pnoise)</code>
+            <p>Measures signal quality against noise.</p>
+          </div>
+          <div>
+            <b>BER</b><code>BER = Incorrect Bits / Total Bits</code>
+            <p>Lower BER means more reliable digital communication.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="edu-grid reveal">
+        <div class="panel edu-card">
+          <div class="edu-number">01</div>
+          <h3>Transmitter</h3>
+          <p>
+            The input information signal is converted into an optical
+            representation using a conceptual optical transmitter.
+          </p>
+        </div>
+        <div class="panel edu-card">
+          <div class="edu-number">02</div>
+          <h3>Optical Fiber</h3>
+          <p>
+            The channel introduces attenuation and Gaussian noise so you can
+            observe real communication impairments.
+          </p>
+        </div>
+        <div class="panel edu-card">
+          <div class="edu-number">03</div>
+          <h3>Receiver</h3>
+          <p>
+            The optical signal is detected and reconstructed to evaluate the
+            quality of the received information.
+          </p>
+        </div>
+        <div class="panel edu-card">
+          <div class="edu-number">04</div>
+          <h3>Analysis</h3>
+          <p>
+            Waveforms, SNR, BER, received power, and distance curves provide
+            measurable engineering results.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        <div>
+          <strong>OptiComm Lab</strong
+          ><span> • Electronics & Communication Engineering PBL</span>
+        </div>
+        <div class="footer-actions">
+          <button id="printBtn">▣ Print / Save PDF</button
+          ><button id="exportBtn">↓ Export CSV</button>
+        </div>
+      </footer>
+    </main>
+
+    <script>
+      const charts = {};
+      const HISTORY_KEY = "opticomm-history-v2";
+      let simulationRunning = false;
+
+      const $ = (id) => document.getElementById(id);
+      function values() {
+        return {
+          signal: $("signal").value,
+          length: Number($("length").value),
+          attenuation: Number($("attenuation").value),
+          noise: Number($("noise").value),
+          power: Number($("power").value),
+        };
+      }
+      function setStatus(text, running = false) {
+        $("statusText").textContent = text;
+        $("statusDot").classList.toggle("running", running);
+        $("liveLabel").textContent = running ? "TRANSMITTING" : "STANDBY";
+      }
+      function animateValue(
+        el,
+        target,
+        suffix = "",
+        decimals = 2,
+        duration = 650,
+      ) {
+        if (typeof target !== "number" || !isFinite(target)) {
+          el.textContent = target;
+          return;
+        }
+        const start = Number(el.dataset.value || 0),
+          t0 = performance.now();
+        function tick(now) {
+          const p = Math.min(1, (now - t0) / duration),
+            e = 1 - Math.pow(1 - p, 3),
+            v = start + (target - start) * e;
+          el.textContent = v.toFixed(decimals) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+          else el.dataset.value = target;
+        }
+        requestAnimationFrame(tick);
+      }
+      function baseOptions(yTitle = "Amplitude") {
+        return {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 800, easing: "easeOutQuart" },
+          interaction: { intersect: false, mode: "index" },
+          plugins: {
+            legend: { labels: { color: "#cbd5e1", usePointStyle: true } },
+            tooltip: {
+              backgroundColor: "#081321",
+              borderColor: "#29445f",
+              borderWidth: 1,
+              titleColor: "#fff",
+              bodyColor: "#b9c9d8",
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: "#7188a0", maxTicksLimit: 9 },
+              grid: { color: "rgba(30,49,70,.45)" },
+            },
+            y: {
+              title: { display: true, text: yTitle, color: "#8198af" },
+              ticks: { color: "#7188a0" },
+              grid: { color: "rgba(30,49,70,.45)" },
+            },
+          },
+        };
+      }
+      function draw(id, labels, datasets, yTitle = "Amplitude") {
+        if (charts[id]) charts[id].destroy();
+        charts[id] = new Chart($(id), {
+          type: "line",
+          data: { labels, datasets },
+          options: baseOptions(yTitle),
+        });
+      }
+      function dataset(label, data, color = "#67e8f9") {
+        return {
+          label,
+          data,
+          borderColor: color,
+          backgroundColor: color,
+          pointRadius: 0,
+          borderWidth: 2,
+          tension: 0.18,
+          fill: false,
+        };
+      }
+      function setPipeline(active = false) {
+        document
+          .querySelectorAll(".node")
+          .forEach((n) => n.classList.remove("active", "complete"));
+        document
+          .querySelectorAll(".connector")
+          .forEach((n) => n.classList.remove("flowing"));
+        if (!active) return;
+        const nodes = [...document.querySelectorAll(".node")],
+          conns = [...document.querySelectorAll(".connector")];
+        nodes.forEach((n, i) =>
+          setTimeout(() => n.classList.add("active"), i * 350),
+        );
+        conns.forEach((n, i) =>
+          setTimeout(() => n.classList.add("flowing"), i * 350 + 170),
+        );
+        $("pipeline").classList.add("transmitting");
+      }
+      function stopPipeline() {
+        document
+          .querySelectorAll(".node")
+          .forEach((n) => n.classList.remove("active"));
+        document
+          .querySelectorAll(".connector")
+          .forEach((n) => n.classList.remove("flowing"));
+        $("pipeline").classList.remove("transmitting");
+      }
+      function qualityScore(m) {
+        let berPenalty = m.ber === null ? 0 : Math.min(45, m.ber * 100 * 45);
+        let snrScore =
+          m.snr_db === null
+            ? 45
+            : Math.max(0, Math.min(45, (m.snr_db / 25) * 45));
+        let lossScore = Math.max(0, 10 - Math.min(10, m.loss_db));
+        return Math.max(
+          0,
+          Math.min(100, 100 - berPenalty - (45 - snrScore) - (10 - lossScore)),
+        );
+      }
+      function updateTelemetry(m, v) {
+        const score = qualityScore(m);
+        $("healthBar").style.width = score + "%";
+        $("powerBar").style.width =
+          Math.min(100, (m.rx_power_mw / v.power) * 100) + "%";
+        $("noiseBar").style.width = Math.min(100, v.noise) + "%";
+        $("powerText").textContent = m.rx_power_mw.toFixed(2) + " mW";
+        $("noiseText").textContent = v.noise.toFixed(1) + "%";
+        let label =
+          score >= 80
+            ? "EXCELLENT"
+            : score >= 60
+              ? "GOOD"
+              : score >= 40
+                ? "FAIR"
+                : "POOR";
+        $("healthText").textContent = label;
+        $("healthMessage").textContent =
+          label === "EXCELLENT"
+            ? "The link is operating with strong signal quality and low impairment."
+            : label === "GOOD"
+              ? "The link is stable with moderate impairment."
+              : label === "FAIR"
+                ? "The link is usable, but attenuation/noise is noticeably affecting quality."
+                : "The channel is highly impaired; consider lowering noise or attenuation.";
+      }
+      function updateInterpretation(m, v) {
+        let title, msg;
+        if (v.noise > 20 || (m.snr_db !== null && m.snr_db < 8)) {
+          title = "High channel impairment";
+          msg =
+            "The selected noise level is significantly affecting the received signal. Increasing transmitter power or reducing channel noise can improve the link.";
+        } else if (m.loss_db > 8) {
+          title = "Long / lossy optical link";
+          msg =
+            "Fiber attenuation is the dominant impairment. Received optical power decreases exponentially with accumulated loss, so shorter fiber or lower attenuation improves the link budget.";
+        } else if (m.ber !== null && m.ber > 0) {
+          title = "Bit errors detected";
+          msg =
+            "The receiver is recovering the signal, but some bits are being interpreted incorrectly. Observe the BER curve to see how channel noise changes reliability.";
+        } else {
+          title = "Healthy optical link";
+          msg =
+            "The selected parameters produce a stable transmission. The recovered waveform remains close to the transmitted information signal.";
+        }
+        $("interpretationTitle").textContent = title;
+        $("interpretation").textContent = msg;
+        $("snapshotSignal").textContent = v.signal;
+        $("snapshotLength").textContent = v.length + " km";
+        $("snapshotAttenuation").textContent = v.attenuation + " dB/km";
+        $("snapshotNoise").textContent = v.noise + "%";
+        $("snapshotPower").textContent = v.power + " mW";
+      }
+      function saveHistory(v, m) {
+        let h = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+        h.unshift({
+          id: Date.now(),
+          ...v,
+          loss: m.loss_db,
+          rx: m.rx_power_mw,
+          snr: m.snr_db,
+          ber: m.ber,
+        });
+        h = h.slice(0, 6);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+        renderHistory();
+      }
+      function renderHistory() {
+        let h = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+        $("historyEmpty").classList.toggle("hidden", h.length > 0);
+        $("historyContent").classList.toggle("hidden", h.length === 0);
+        if (!h.length) return;
+        $("historyList").innerHTML = h
+          .map(
+            (x, i) =>
+              `<div class="history-row"><div class="run-index">${String(i + 1).padStart(2, "0")}</div><div><b>${x.signal}</b><span>${x.length} km • ${x.noise}% noise • ${x.power} mW</span></div><strong>${x.snr === null ? "∞" : x.snr.toFixed(1) + " dB"}</strong><small>BER ${x.ber === null ? "N/A" : x.ber.toFixed(4)}</small></div>`,
+          )
+          .join("");
+        if (h.length > 1) {
+          let a = h[0],
+            b = h[1];
+          $("compareLabel").textContent = a.signal + " vs " + b.signal;
+          let rows = [
+            ["SNR", a.snr || 0, b.snr || 0, " dB"],
+            ["Rx Power", a.rx, b.rx, " mW"],
+            ["Loss", a.loss, b.loss, " dB"],
+          ];
+          $("compareBars").innerHTML = rows
+            .map((r) => {
+              let max = Math.max(Math.abs(r[1]), Math.abs(r[2]), 1);
+              return `<div class="compare-row"><span>${r[0]}</span><div class="bar-pair"><i style="width:${Math.min(100, (Math.abs(r[1]) / max) * 100)}%"></i><i style="width:${Math.min(100, (Math.abs(r[2]) / max) * 100)}%"></i></div><small>${Number(r[1]).toFixed(2)} / ${Number(r[2]).toFixed(2)}${r[3]}</small></div>`;
+            })
+            .join("");
+        } else {
+          $("compareLabel").textContent = "Need 2 runs";
+          $("compareBars").innerHTML =
+            '<p class="muted">Run another experiment to compare two configurations.</p>';
+        }
+      }
+      async function run() {
+        if (simulationRunning) return;
+        simulationRunning = true;
+        const btn = $("runBtn");
+        btn.disabled = true;
+        btn.textContent = "◌ Simulating...";
+        setStatus("Transmitting optical data through the channel…", true);
+        setPipeline(true);
+        const started = performance.now();
+        const timer = setInterval(() => {
+          $("elapsed").textContent =
+            ((performance.now() - started) / 1000).toFixed(1) + "s";
+        }, 100);
+        try {
+          const v = values();
+          const response = await fetch("/api/simulate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(v),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Simulation failed");
+          const m = data.metrics;
+          animateValue($("loss"), m.loss_db, " dB", 2);
+          animateValue($("rx"), m.rx_power_mw, " mW", 3);
+          if (m.snr_db === null) $("snr").textContent = "∞";
+          else animateValue($("snr"), m.snr_db, " dB", 2);
+          if (m.ber === null) $("ber").textContent = "N/A";
+          else animateValue($("ber"), m.ber, "", 6);
+          const time = data.time.map((x) => x.toFixed(3) + "s");
+          draw("originalChart", time, [dataset("Original", data.original)]);
+          draw("fiberChart", time, [
+            dataset("After Fiber", data.after_fiber, "#a78bfa"),
+          ]);
+          draw("receiverChart", time, [
+            dataset("Received + Noise", data.noisy_rx, "#fb7185"),
+            dataset("Recovered", data.recovered, "#4ade80"),
+          ]);
+          draw(
+            "powerChart",
+            data.power_curve.distance.map((x) => x.toFixed(1)),
+            [dataset("Received Power", data.power_curve.power, "#fbbf24")],
+            "Power (mW)",
+          );
+          draw(
+            "berChart",
+            data.ber_curve.noise.map((x) => x.toFixed(1) + "%"),
+            [dataset("BER", data.ber_curve.ber, "#f472b6")],
+            "BER",
+          );
+          updateTelemetry(m, v);
+          updateInterpretation(m, v);
+          saveHistory(v, m);
+          setStatus("Simulation complete — results and analysis updated.");
+        } catch (err) {
+          alert(err.message);
+          setStatus("Simulation failed — check the experiment parameters.");
+        } finally {
+          clearInterval(timer);
+          $("elapsed").textContent =
+            ((performance.now() - started) / 1000).toFixed(1) + "s";
+          stopPipeline();
+          simulationRunning = false;
+          btn.disabled = false;
+          btn.textContent = "▶ Run Experiment";
+        }
+      }
+      function reset() {
+        $("signal").value = "Digital";
+        $("length").value = 10;
+        $("attenuation").value = 0.2;
+        $("noise").value = 5;
+        $("power").value = 10;
+        ["loss", "rx", "snr", "ber"].forEach((id) => {
+          $(id).textContent = "--";
+          $(id).dataset.value = "0";
+        });
+        $("healthText").textContent = "READY";
+        $("healthBar").style.width = "0%";
+        $("powerBar").style.width = "0%";
+        $("noiseBar").style.width = "0%";
+        $("powerText").textContent = "--";
+        $("noiseText").textContent = "--";
+        $("interpretationTitle").textContent = "Awaiting simulation";
+        $("interpretation").textContent =
+          "Run the experiment to generate an engineering interpretation of the selected parameters.";
+        setStatus("System ready — configure the link and run an experiment.");
+      }
+      document.querySelectorAll("[data-preset]").forEach((b) =>
+        b.addEventListener("click", () => {
+          const p = b.dataset.preset;
+          const presets = {
+            ideal: {
+              signal: "Digital",
+              length: 5,
+              attenuation: 0.15,
+              noise: 1,
+              power: 15,
+            },
+            balanced: {
+              signal: "Sine",
+              length: 10,
+              attenuation: 0.2,
+              noise: 5,
+              power: 10,
+            },
+            noisy: {
+              signal: "Digital",
+              length: 15,
+              attenuation: 0.3,
+              noise: 25,
+              power: 10,
+            },
+            long: {
+              signal: "Sine",
+              length: 40,
+              attenuation: 0.25,
+              noise: 8,
+              power: 12,
+            },
+          }[p];
+          $("signal").value = presets.signal;
+          $("length").value = presets.length;
+          $("attenuation").value = presets.attenuation;
+          $("noise").value = presets.noise;
+          $("power").value = presets.power;
+          setStatus(
+            p.charAt(0).toUpperCase() +
+              p.slice(1) +
+              " preset loaded — ready to run.",
+          );
+        }),
+      );
+      $("runBtn").addEventListener("click", run);
+      $("heroRun").addEventListener("click", () => {
+        $("controls").scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(run, 450);
+      });
+      $("scrollTheory").addEventListener("click", () =>
+        $("theory").scrollIntoView({ behavior: "smooth" }),
+      );
+      $("resetBtn").addEventListener("click", reset);
+      $("clearHistory").addEventListener("click", () => {
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistory();
+      });
+      $("printBtn").addEventListener("click", () => window.print());
+      $("exportBtn").addEventListener("click", async () => {
+        const r = await fetch("/api/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values()),
+        });
+        if (!r.ok) {
+          alert("Export failed");
+          return;
+        }
+        const blob = await r.blob(),
+          url = URL.createObjectURL(blob),
+          a = document.createElement("a");
+        a.href = url;
+        a.download = "optical_experiment.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      renderHistory();
+      window.addEventListener("load", () => setTimeout(run, 350));
+    </script>
+  </body>
+</html>
